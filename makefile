@@ -8,18 +8,12 @@ include ${PETSC_DIR}/lib/petsc/conf/variables
 include ${PETSC_DIR}/lib/petsc/conf/rules
 include ${PETSC_DIR}/lib/petsc/conf/test
 
-f: modules.o porticomb.o $(CSOURCES:.cpp=.o) 
-	@-${CLINKER} -o $@ $^ ${PETSC_KSP_LIB} -Wtabs -Wcomment -lboost_system -lgfortran
+f: $(CSOURCES:.cpp=.o) 
+	@-${CLINKER} -o $@ $^ ${PETSC_KSP_LIB} -Wtabs -Wcomment -lboost_system
 
 debug: $(CSOURCES:.cpp=.o)
 	@-${CLINKER} -o $@ $^ ${PETSC_KSP_LIB} -g
 	@gdb debug
-
-modules.o: modules.for
-	@ ${FCOMPILER} -c modules.for
-
-porticomb.o: porticomb.for
-	@ ${FCOMPILER} -c porticomb.for
 
 clear:
 	@$ rm *.o *~ f *.vtu mirror* domain* *.mod *.dat ma26* tensao* esforc* saida omega.txt

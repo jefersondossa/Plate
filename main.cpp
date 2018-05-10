@@ -33,7 +33,7 @@ static char help[] = "Solves the Incompressible flow problem";
 #include <fstream>
 
 // Developed Header Files
-#include "FSInteraction.hpp"
+#include "Solid.hpp"
 
 
 int main(int argc, char **args) {
@@ -56,70 +56,14 @@ int main(int argc, char **args) {
     const int dimension = 2;
 
     //Type definition
-    typedef Fluid<dimension>         FluidModel;
-    typedef Arlequin<dimension>      Arlequin;
-    typedef FSInteraction<dimension> FSI;
+    typedef Solid<dimension>         SolidModel;
  
     //Create problem variables 
-    FluidModel coarseModel, fineModel, control;  
-    Arlequin   arlequinProblem; 
-    FSI        coupledProblem;  
+    SolidModel coarseModel, fineModel, control;  
     
     //Data reading    
-    fineModel.dataReading("cyl_fine_coin.txt","mirror_fine.txt");  
-     
-    coarseModel.dataReading("cyl_coarse2.txt","mirror_coarse.txt");
- 
-    // fineModel.dataReading("fine2.txt","mirror_fine.txt"); 
-     
-    // coarseModel.dataReading("coarse.txt","mirror_coarse.txt");
- 
-    // control.dataReading("fluid_interaction3.txt","mirror_control.txt");
-
-    // char in_solid[32] = "cantilever.txt";
-     
-    // coupledProblem.setFluidAndSolidModels(control,in_solid);
- 
-    // coupledProblem.solveFSIProblemGaussSeidel(1000);
-
-    //control.dataReading(".txt","mirror_coarse.txt");
-  
-    //Problem solving  
-        
-    //Solve Problem function needs three parameters:  
-    //1- The maximum number of iterations in the Newton-Raphson process
-    //2- The maximum relative error in the Newton-Raphson process (DU)
-    //3- The type of problem to be solved:  
-    //   1- Steady Stokes problem;   
-    //   2- Steady Navier-Stokes problem (solves the steady Stokes
-    //      in the first step to perform the initial guess);  
-   
-    //coarseModel.solveSteadyProblem(10, 1.e-15, 2);
-
-    //fluidCoarseMesh.solveTransientProblem(4, 1.e-16, 2); 
-  
-   
-    //control.solveTransientProblem(1, 1.e-6, 2); 
-  
-    //coarseModel.solveTransientProblem(2, 1.e-16, 2); 
-
-    // fineModel.solveSteadyLaplaceProblem(8, 1.e-16, 2);
-     
- 
-    //1- The maximum number of iterations in the Newton-Raphson process
-    //2- The maximum relative error in the Newton-Raphson process (DU)
-    //3- The type of problem to be solved:
-    //   1- Stokes problem;  
-    //   2- Navier-Stokes problem (solves the steady Stokes
-    //      in the first step to perform the initial guess);
-    //4- 0 - Steady problem
-    //   1 - Transient problem 
- 
-    
-    arlequinProblem.setFluidModels(coarseModel, fineModel) ;
-      
-    arlequinProblem.solveArlequinProblemMoving(2, 1.e-7, 2, 1);
-         
+    fineModel.dataReading("cyl_coarse.txt","mirror_fine.txt");  
+    fineModel.solveSteadyProblem(1,1.e-5,1);
    
   
     //Finalize main program
