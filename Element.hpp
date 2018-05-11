@@ -39,12 +39,12 @@ public:
     /// Defines the vector which contains the element nodal coordinates
     typedef ublas::bounded_matrix<double, 4*DIM-2, DIM>         LocalNodes;
 
-    /// Defines the local vector type with dimension 15 for DIM=2 
-    /// and 34 for DIM=3
+    /// Defines the local vector type with dimension 12x12 for DIM=2 and
+    /// 30x30 for DIM=3
     typedef ublas::bounded_vector<double, 18*DIM-24>            LocalVector;
 
-    /// Defines the local matrix type with dimension 15x15
-    /// for DIM=2 and 34x34 for DIM=3
+    /// Defines the local matrix type with dimension 12x12
+    /// for DIM=2 and 30x30 for DIM=3
     typedef ublas::bounded_matrix<double, 18*DIM-24, 18*DIM-24> LocalMatrix;
 
     /// Defines the normal integration quadrature rule class locally
@@ -60,11 +60,11 @@ private:
     QuadShapeFunction<DIM> shapeQuad; //Quadratic shape function
     BoundShapeFunction<DIM>shapeBound;//Boundary shape function
     NormalQuad             nQuad;     //Integration quadrature
-    std::vector<Nodes *>   nodes_;    //Velocity nodes
-    Connectivity  connect_;           //Velocity mesh connectivity 
+    std::vector<Nodes *>   nodes_;    //Nodes
+    Connectivity  connect_;           //Element connectivity 
     int           index_;             //Element index
-    LocalNodes    localNodes_;        //Nodal coordinates - velocity
-    LocalNodes    localNodesBoundary_;//Nodal coordinates - velocity
+    LocalNodes    localNodes_;        //Nodal coordinates
+    LocalNodes    localNodesBoundary_;//Nodal coordinates - boundary
     double        djac_;              //Jacobian determinant
     double        weight_;            //Integration point weight
     DimMatrix     ainv_;             //Inverse of Jacobian transform
@@ -76,32 +76,26 @@ private:
     double        dTime_;             //Time Step
     double        timeBeta_;          //Time Integration scheme
     double        timeGamma_;          //Time Integration scheme
-    LocalMatrix   jacobianNRMatrix;   //Newton's method jacobian
     LocalMatrix   stiffnessMatrix;    //Stiffness Matrix
-    double        u_, v_, w_, p_;     //Interpolated velocity and pressure
-    double        uPrev_, vPrev_, wPrev_, pPrev_;
-    double        ax_, ay_, az_;      //Interpolated acceleration
-    double        du_dx, du_dy, du_dz, dv_dx, dv_dy, dv_dz, 
-                  dw_dx, dw_dy, dw_dz;//Interpolated fluid spatial derivatives
 
     DimVector     fieldForce_;        //Element field force
     LocalVector   externalForces;     //Field forces integrated over
                                       //the element domain
-    LocalVector   rhsVector;          //RHS vector of Newton's method
+    LocalVector   loadVector;         //RHS vector of Newton's method
     int           sideBoundary_;
     bool          loaded_;
     
     std::vector<ublas::bounded_vector<double,DIM> > di;
 
-    //Second derivatives of velocity shape functions
+    //Shape functions second derivatives
     typename QuadShapeFunction<DIM>::ValueDDeriv ddphi_dx; 
-    //First derivatives of velocity shape functions
+    //Shape functions first derivatives
     typename QuadShapeFunction<DIM>::ValueDeriv  dphi_dx, dphiL_dx;
-    //Values of velocity shape functins
+    //Shape functin values
     typename QuadShapeFunction<DIM>::Values      phi_;     
-    //Values of velocity shape functins
+    //Boundary shape functions
     typename BoundShapeFunction<DIM>::Values     phib_;     
-    //Values of velocity shape functins
+    //Boundary shape functions values
     typename BoundShapeFunction<DIM>::ValueDeriv dphib_;     
 
 public:
@@ -118,13 +112,8 @@ public:
         dens_ = 0.;             dTime_ = 0.;              poisson_ = 0.;
         thick_ = 0.;            elastic_ = 0.;            damping_ = 0.;
         timeBeta_ = 0.;         timeGamma_ = 0.;
-        jacobianNRMatrix.clear();
 
-        u_ = 0.;          v_ = 0.;          w_ = 0;          p_ = 0.; 
-        du_dx = 0.;       du_dy = 0.;       du_dz = 0.; 
-        dv_dx = 0.;       dv_dy = 0.;       dv_dz = 0.;
-        dw_dx = 0.;       dw_dy = 0.;       dw_dz = 0.; 
-        fieldForce_.clear();     externalForces.clear();     rhsVector.clear();
+        fieldForce_.clear();     externalForces.clear();     loadVector.clear();
         sideBoundary_ = 0;
         loaded_ = false;
 
@@ -194,13 +183,6 @@ public:
     /// @return element jacobinan determinant
     double getJacobian(){return djac_;};
 
-    /// Gets the spatial jacobian matrix
-    /// @param bounded_vector integration point coordinates
-    /// @return spatial jacobian matrix
-    DimMatrix getJacobianMatrixValues(ublas::bounded_vector<double, DIM>& xsi){
-        getJacobianMatrix(xsi);
-        return ainv_;};
-
     /// Sets the element side in boundary
     /// @param int side in boundary
     void setElemSideInBoundary(int side){sideBoundary_ = side;};
@@ -218,31 +200,25 @@ public:
     bool getElemLoaded(){return loaded_;};
 
     //.......................Element vectors and matrices.......................
-    /// Compute and store the element matrix for the incompressible flow problem
-    /// @param int integration point index
+    /// Compute and store the element stiffness matrix
     void getElemStiffMatrix();
 
-    /// Sets the boundary conditions for the incompressible flow problem
+    /// Sets the boundary conditions
     void setBoundaryConditions();
 
     ///Compute and store the residual vector for the incompressible flow problem
-    /// @param int integration point index
-    void getResidualVector();
+    void getElemLoadVector();
 
-    /// Gets the Newton-Raphson's jacobian matrix
-    /// @return Newton-Raphson's jacobian matrix
-    LocalMatrix getJacNRMatrix(){return jacobianNRMatrix;};
+    /// Gets the element Stiffness matrix
+    LocalMatrix getStiffnessMatrix(){return stiffnessMatrix;};
 
-    /// Gets the residual vector
-    /// @return residual vecot
-    LocalVector getRhsVector(){return rhsVector;};
+    /// Gets the load vector
+    LocalVector getLoadVector(){return loadVector;};
 
     //...............................Problem type...............................
-    /// Compute the Steady Stokes problem matrices and vectors
-    void getSteadyNavierStokes();
+    /// Compute the Static problem matrices and vectors
+    void getStatic();
 
-    /// Compute the Steady Navier-Stokes problem matrices and vectors
-    void getTransientNavierStokes();
 
 };
 
@@ -311,15 +287,8 @@ template<>
 void Element<2>::clearVariables(){
 
     djac_ = 0.;               weight_ = 0.;              ainv_.clear();
-   
-    jacobianNRMatrix.clear();
     
-    u_ = 0.;          v_ = 0.;          w_ = 0;          p_ = 0.; 
-    du_dx = 0.;       du_dy = 0.;       du_dz = 0.; 
-    dv_dx = 0.;       dv_dy = 0.;       dv_dz = 0.;
-    dw_dx = 0.;       dw_dy = 0.;       dw_dz = 0.; 
-    
-    externalForces.clear();   rhsVector.clear();
+    externalForces.clear();   loadVector.clear();
     localNodes_.clear();     
 
     ddphi_dx.clear();        dphi_dx.clear();            phi_.clear();     
@@ -335,14 +304,13 @@ template<>
 void Element<3>::clearVariables(){
 
     djac_ = 0.;               weight_ = 0.;              ainv_.clear();
-    jacobianNRMatrix.clear();
     
-    u_ = 0.;          v_ = 0.;          w_ = 0;          p_ = 0.; 
-    du_dx = 0.;       du_dy = 0.;       du_dz = 0.; 
-    dv_dx = 0.;       dv_dy = 0.;       dv_dz = 0.;
-    dw_dx = 0.;       dw_dy = 0.;       dw_dz = 0.; 
-    
-    externalForces.clear();   rhsVector.clear();
+    externalForces.clear();   loadVector.clear();
+    localNodes_.clear();     
+
+    ddphi_dx.clear();        dphi_dx.clear();            phi_.clear();     
+
+    loaded_ = false;
     
     setLocalNodes();
 
@@ -375,7 +343,6 @@ void Element<2>::getJacobianMatrix(ublas::bounded_vector<double,2>& xsi) {
 
     //Computing the jacobian determinant
     djac_ = dx_dxsi1 * dy_dxsi2 - dx_dxsi2 * dy_dxsi1;
-    //    djac_ = fabs(djac_);
 
     //Computing Jacobian inverse
     ainv_(0,0) =  dy_dxsi2 / djac_;
@@ -518,7 +485,7 @@ void Element<3>::getSpatialDerivatives(ublas::bounded_vector<double,3>& xsi) {
 };
 
 //------------------------------------------------------------------------------
-//----------------------ELEMENT DIFFUSION/VISCOSITY MATRIX----------------------
+//---------------------------ELEMENT STIFFNESS MATRIX---------------------------
 //------------------------------------------------------------------------------
 template<>
 void Element<2>::getElemStiffMatrix(){
@@ -558,7 +525,7 @@ void Element<2>::getElemStiffMatrix(){
         xsi(0) = nQuad.PointList(index,0);
         xsi(1) = nQuad.PointList(index,1);
         
-        //Computes the velocity shape functions
+        //Computes the shape functions
         shapeQuad.evaluate(xsi,phi_);
         
         //Returns the quadrature integration weight
@@ -584,16 +551,6 @@ void Element<2>::getElemStiffMatrix(){
         
         index++;
     };
-    
-    // std::cout << "Stiff " << index_ << std::endl;
-    // for (int i=0; i<12; i++){
-    //     for (int j=0; j<12; j++){
-    //         std::cout << stiffnessMatrix(i,j) << " " ;
-    //     };
-    //     std::cout << std::endl;
-    // };
-
-    
 
     return;
 };
@@ -609,20 +566,20 @@ void Element<2>::setBoundaryConditions(){
 
         if (nodes_[connect_(i)] -> getConstrains(0) == 1)  {
             for (int j = 0; j < 12; j++){
-                jacobianNRMatrix(2*i  ,j) = 0.;
-                jacobianNRMatrix(j,2*i  ) = 0.;
+                stiffnessMatrix(2*i  ,j) = 0.;
+                stiffnessMatrix(j,2*i  ) = 0.;
             };
-            jacobianNRMatrix(2*i  , 2*i  ) = 1.;
-            rhsVector(2*i  ) = 0.;
+            stiffnessMatrix(2*i  , 2*i  ) = 1.;
+            loadVector(2*i  ) = 0.;
         };
 
         if (nodes_[connect_(i)] -> getConstrains(1) == 1) {
             for (int j = 0; j < 12; j++){
-                jacobianNRMatrix(2*i+1,j) = 0.;
-                jacobianNRMatrix(j,2*i+1) = 0.;
+                stiffnessMatrix(2*i+1,j) = 0.;
+                stiffnessMatrix(j,2*i+1) = 0.;
             };
-            jacobianNRMatrix(2*i+1, 2*i+1) = 1.;
-            rhsVector(2*i+1) =  0.;
+            stiffnessMatrix(2*i+1, 2*i+1) = 1.;
+            loadVector(2*i+1) =  0.;
         };
     };
 
@@ -630,13 +587,45 @@ void Element<2>::setBoundaryConditions(){
 };
 
 //------------------------------------------------------------------------------
-//-----------------------------RESIDUAL - RHS VECTOR----------------------------
+//----------------------------------LOAD VECTOR---------------------------------
 //------------------------------------------------------------------------------
 template<>
-void Element<2>::getResidualVector(){
+void Element<2>::getElemLoadVector(){
     
-    rhsVector.clear();
+    loadVector.clear();
 
+    // Domain Loads
+    typename QuadShapeFunction<2>::Coords xsi;
+    int index = 0;
+
+    for(typename NormalQuad::QuadratureListIt it = nQuad.begin(); 
+        it != nQuad.end(); it++){
+        
+        //Defines the integration points adimentional coordinates
+        xsi(0) = nQuad.PointList(index,0);
+        xsi(1) = nQuad.PointList(index,1);
+        
+        //Computes the shape functions
+        shapeQuad.evaluate(xsi,phi_);
+        
+        //Returns the quadrature integration weight
+        weight_ = nQuad.WeightList(index);
+        
+        //Computes the jacobian matrix
+        getJacobianMatrix(xsi);
+                
+        for (int i = 0; i < 6; i++){                
+            loadVector(2*i  ) += fieldForce_(0) * phi_(i) 
+                * djac_ * weight_ * thick_;
+            loadVector(2*i+1) += fieldForce_(1) * phi_(i) 
+                * djac_ * weight_ * thick_;
+        };
+        
+        index++;
+    };
+
+
+    // Surface loads
     if (loaded_) {
         ublas::bounded_vector<double, 3> nodesb_; 
         if(sideBoundary_ == 0){
@@ -668,8 +657,7 @@ void Element<2>::getResidualVector(){
                     localNodesBoundary_(2,i) = localNodes_(1,i);
                 };
             };        
-        };
-        
+        };        
         
         BoundaryQuad           bQuad;     //Boundary Integration Quadrature
         std::pair<BoundaryQuad::PointCoord,BoundaryQuad::PointWeight> gaussQuad;
@@ -704,52 +692,44 @@ void Element<2>::getResidualVector(){
             for (int i=0; i<3; i++){
                 double qx = nodes_[nodesb_(i)] -> getConstrainValue(0);
                 double qy = nodes_[nodesb_(i)] -> getConstrainValue(1);
-                std::cout << "Normal Vector " << qx <<" " << qy << std::endl;      
+
                 if(sideBoundary_ == 0){
-                    rhsVector(2*1  ) += qx * phib_(i) * weight_ * jacb_;
-                    rhsVector(2*1+1) += qy * phib_(i) * weight_ * jacb_;
+                    loadVector(2*1  ) += qx * phib_(i) * weight_ * jacb_;
+                    loadVector(2*1+1) += qy * phib_(i) * weight_ * jacb_;
                     
-                    rhsVector(2*4  ) += qx * phib_(i) * weight_ * jacb_;
-                    rhsVector(2*4+1) += qy * phib_(i) * weight_ * jacb_; 
+                    loadVector(2*4  ) += qx * phib_(i) * weight_ * jacb_;
+                    loadVector(2*4+1) += qy * phib_(i) * weight_ * jacb_; 
                     
-                    rhsVector(2*2  ) += qx * phib_(i) * weight_ * jacb_;
-                    rhsVector(2*2+1) += qy * phib_(i) * weight_ * jacb_;
+                    loadVector(2*2  ) += qx * phib_(i) * weight_ * jacb_;
+                    loadVector(2*2+1) += qy * phib_(i) * weight_ * jacb_;
                 }else{
                     if(sideBoundary_ == 1){
-                        rhsVector(2*2  ) += qx * phib_(i) * weight_ * jacb_;
-                        rhsVector(2*2+1) += qy * phib_(i) * weight_ * jacb_;
+                        loadVector(2*2  ) += qx * phib_(i) * weight_ * jacb_;
+                        loadVector(2*2+1) += qy * phib_(i) * weight_ * jacb_;
                         
-                        rhsVector(2*5  ) += qx * phib_(i) * weight_ * jacb_;
-                        rhsVector(2*5+1) += qy * phib_(i) * weight_ * jacb_; 
+                        loadVector(2*5  ) += qx * phib_(i) * weight_ * jacb_;
+                        loadVector(2*5+1) += qy * phib_(i) * weight_ * jacb_; 
                         
-                        rhsVector(2*0  ) += qx * phib_(i) * weight_ * jacb_;
-                        rhsVector(2*0+1) += qy * phib_(i) * weight_ * jacb_;
+                        loadVector(2*0  ) += qx * phib_(i) * weight_ * jacb_;
+                        loadVector(2*0+1) += qy * phib_(i) * weight_ * jacb_;
                     }else{
-                        rhsVector(2*0  ) += qx * phib_(i) * weight_ * jacb_;
-                        rhsVector(2*0+1) += qy * phib_(i) * weight_ * jacb_;
+                        loadVector(2*0  ) += qx * phib_(i) * weight_ * jacb_;
+                        loadVector(2*0+1) += qy * phib_(i) * weight_ * jacb_;
                         
-                        rhsVector(2*3  ) += qx * phib_(i) * weight_ * jacb_;
-                        rhsVector(2*3+1) += qy * phib_(i) * weight_ * jacb_; 
+                        loadVector(2*3  ) += qx * phib_(i) * weight_ * jacb_;
+                        loadVector(2*3+1) += qy * phib_(i) * weight_ * jacb_; 
                         
-                        rhsVector(2*1  ) += qx * phib_(i) * weight_ * jacb_;
-                        rhsVector(2*1+1) += qy * phib_(i) * weight_ * jacb_;
+                        loadVector(2*1  ) += qx * phib_(i) * weight_ * jacb_;
+                        loadVector(2*1+1) += qy * phib_(i) * weight_ * jacb_;
                     };        
                 };
             };
-        };
-        
+        };        
             
         index++;
         
     };
 
-    std::cout << "Stiff " << index_ << std::endl;
-    for (int j=0; j<12; j++){
-            std::cout << rhsVector(j) << " " ;
-    };
-    std::cout << std::endl;
-    
-
     return;
 };
 
@@ -757,78 +737,28 @@ void Element<2>::getResidualVector(){
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-//----------------MOUNTS EACH TYPE OF INCOMPRESSIBLE FLOW PROBEM----------------
+//-----------------------MOUNTS EACH TYPE OF PLATE PROBEM-----------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
-//-------------------------STEADY NAVIER-STOKES PROBEM--------------------------
+//-----------------------------STATIC PLATE PROBEM------------------------------
 //------------------------------------------------------------------------------
 template<>
-void Element<2>::getSteadyNavierStokes(){
+void Element<2>::getStatic(){
     
     //Computes the element diffusion/viscosity matrix
     getElemStiffMatrix();
     
     //Computes the RHS vector
-    getResidualVector();
+    getElemLoadVector();
     
     //Apply boundary conditions
     setBoundaryConditions();
 
-    jacobianNRMatrix = stiffnessMatrix;
-
     return;
-};
-
-
-//------------------------------------------------------------------------------
-//-----------------------TRANSIENT NAVIER-STOKES PROBEM-------------------------
-//------------------------------------------------------------------------------
-template<>
-void Element<2>::getTransientNavierStokes(){
-
-    // typename QuadShapeFunction<2>::Coords xsi;
-    // int index = 0;
-
-    // jacobianNRMatrix.clear();
-    // rhsVector.clear();
-
-
-    // for(typename NormalQuad::QuadratureListIt it = nQuad.begin(); 
-    //     it != nQuad.end(); it++){
-
-    //     //Defines the integration points adimentional coordinates
-    //     xsi(0) = nQuad.PointList(index,0);
-    //     xsi(1) = nQuad.PointList(index,1);
-
-    //     //Computes the velocity shape functions
-    //     shapeQuad.evaluate(xsi,phi_);
-
-    //     //Returns the quadrature integration weight
-    //     weight_ = nQuad.WeightList(index);
-
-    //     //Computes the jacobian matrix
-    //     getJacobianMatrix(xsi);
-
-    //     //Computes spatial derivatives
-    //     getSpatialDerivatives(xsi);
-
-    //     //Computes the element diffusion/viscosity matrix
-    //     getElemMatrix(index);
-
-    //     //Computes the RHS vector
-    //     getResidualVector(index); 
-
-    //     index++;        
-    // };  
-    
-    // //Apply boundary conditions
-    // setBoundaryConditions();
-
-    // return;
 };
 
 #endif
