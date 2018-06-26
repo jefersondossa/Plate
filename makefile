@@ -43,4 +43,4 @@ run8:
 	@$ mpirun -np 8 ./f
 
 run16:
-	@$ mpirun -np 16 ./f -pc_type jacobi -ksp_type gmres -ksp_monitor_singular_value -ksp_gmres_restart 1000
+	@$ mpirun -np 16 ./f -pc_type asm -ksp_type gmres -ksp_gmres_restart 1000

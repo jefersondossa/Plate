@@ -6,7 +6,7 @@ ELEMENTS        NODES        TIME STEPS     PRINTING FREQ
 --------------------------------------------------------------------------------
 DENSITY      POISSON      ELASTIC MODULUS      THICKNESS      DAMPING 
 --------------------------------------------------------------------------------
-7.86E3       0.30          2.e11                0.1            0.0 
+7.86E3       0.0          2.e11                0.1            0.0 
 
 --------------------------------------------------------------------------------
 TIME STEP       TIME INTEGRATION PARAMETERS (beta and gamma)

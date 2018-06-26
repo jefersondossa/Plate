@@ -163,7 +163,7 @@ void Solid<2>::printResults(int step) {
 
     convert << step+100000;
     result = convert.str();
-    std::string s = "saidaVel"+result+".vtu";
+    std::string s = "saidaSolid"+result+".vtu";
     
     std::fstream output_v(s.c_str(), std::ios_base::out);
 
@@ -601,43 +601,37 @@ int Solid<2>::solveStaticProblem() {
                         int dof_i = 2*connec(i);
                         int dof_j = 2*connec(j);
                         ierr = MatSetValues(A,1,&dof_i,1,&dof_j,
-                                            &Ajac(2*i  ,2*j  ),
-                                            ADD_VALUES);
+                                            &Ajac(2*i  ,2*j  ),ADD_VALUES);
                     };
                     if (fabs(Ajac(2*i+1,2*j  )) >= 1.e-8){
                         int dof_i = 2*connec(i)+1;
                         int dof_j = 2*connec(j);
                         ierr = MatSetValues(A,1,&dof_i,1,&dof_j,    
-                                            &Ajac(2*i+1,2*j  ),
-                                                ADD_VALUES);
+                                            &Ajac(2*i+1,2*j  ),ADD_VALUES);
                     };
                     if (fabs(Ajac(2*i  ,2*j+1)) >= 1.e-8){
                         int dof_i = 2*connec(i);
                         int dof_j = 2*connec(j)+1;
                         ierr = MatSetValues(A,1,&dof_i,1,&dof_j,    
-                                            &Ajac(2*i  ,2*j+1),
-                                            ADD_VALUES);
+                                            &Ajac(2*i  ,2*j+1),ADD_VALUES);
                     };
                     if (fabs(Ajac(2*i+1,2*j+1)) >= 1.e-8){
                         int dof_i = 2*connec(i)+1;
                         int dof_j = 2*connec(j)+1;
                         ierr = MatSetValues(A,1,&dof_i,1,&dof_j,    
-                                                &Ajac(2*i+1,2*j+1),
-                                            ADD_VALUES);
+                                            &Ajac(2*i+1,2*j+1),ADD_VALUES);
                     };
                 };
                 
                 //Load vector
                 if (fabs(Rhs(2*i  )) >= 1.e-8){
                     int dof_i = 2*connec(i);
-                    ierr = VecSetValues(b,1,&dof_i,&Rhs(2*i  ),
-                                        ADD_VALUES);
+                    ierr = VecSetValues(b,1,&dof_i,&Rhs(2*i  ),ADD_VALUES);
                 };
                 
                 if (fabs(Rhs(2*i+1)) >= 1.e-8){
                     int dof_i = 2*connec(i)+1;
-                    ierr = VecSetValues(b,1,&dof_i,&Rhs(2*i+1),
-                                        ADD_VALUES);
+                    ierr = VecSetValues(b,1,&dof_i,&Rhs(2*i+1),ADD_VALUES);
                 };
             };
         };
@@ -675,8 +669,7 @@ int Solid<2>::solveStaticProblem() {
     // ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
     // //ierr = KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD);
     
-   
-    
+      
 #if defined(PETSC_HAVE_MUMPS)
     ierr = KSPSetType(ksp,KSPPREONLY);
     ierr = KSPGetPC(ksp,&pc);
