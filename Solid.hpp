@@ -564,7 +564,7 @@ int Solid<2>::solveStaticProblem() {
     int sysSize = 2 * numNodes;
     
     ierr = MatCreateAIJ(PETSC_COMM_WORLD, PETSC_DECIDE, PETSC_DECIDE,
-                        sysSize,sysSize,60,NULL,80,NULL,&A); CHKERRQ(ierr);
+                        sysSize,sysSize,20,NULL,80,NULL,&A); CHKERRQ(ierr);
     
     ierr = MatGetOwnershipRange(A, &Istart, &Iend);CHKERRQ(ierr);
     

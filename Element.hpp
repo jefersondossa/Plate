@@ -509,7 +509,7 @@ void Element<2>::getElemStiffMatrix(){
     // hooke(0,0) = k * (1. - poisson_);
     // hooke(0,1) = k * poisson_;
     // hooke(1,0) = k * poisson_;
-    // hooke(1,1) = k * (1. - poisson);
+    // hooke(1,1) = k * (1. - poisson_);
     // hooke(2,2) = k * (1. - 2. * poisson_) * 0.5;
     
     typename QuadShapeFunction<2>::Coords xsi;
