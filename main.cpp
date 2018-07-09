@@ -47,7 +47,7 @@ int main(int argc, char **args) {
     SolidModel square;  
     
     //Data reading    
-    square.dataReading("fine2.txt","mirror.txt");  
+    square.dataReading("coarse.txt","mirror.txt");  
     square.solveStaticProblem();
    
   
